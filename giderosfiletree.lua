@@ -87,7 +87,7 @@ local function updateFiletree(projName)
   local projStr = FileRead(projectPath .. projName)
   if not projStr then return end
   local files = luaFilesFromGidProj(projStr, true)
-  if not files then return end
+  --if not files then return end
   local root = tree.ctrl:GetRootItem()
   -- prevent UI updates in control to stop flickering
   ide:GetProjectNotebook():Freeze()
