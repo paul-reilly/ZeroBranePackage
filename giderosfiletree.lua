@@ -14,7 +14,8 @@
 --
 -- Example:
 --                giderosfiletree = {
---                     ignore = { "Export", ".tmp" }
+--                     ignore = { "Export", ".tmp" },
+--                  recursive = true
 --                }
 --
 --    This will remove the folder (eg) "PROJECTDIRECTORY/Export Android/" from the file
@@ -82,6 +83,24 @@ local function luaFilesFromGidProj(projStr, relativeOnly)
   end
 end
 
+
+local function patternDeleteNodes(child, pattern, recursive)
+  local text
+  while child:IsOk() do
+    text = tree.ctrl:GetItemText(child)
+    if text:find(pattern) and not text:find("%.lua") then
+      child = tree.ctrl:GetNextSibling(child)
+      tree.ctrl:Delete(tree.ctrl:GetPrevSibling(child))
+    else
+      if recursive and tree.ctrl:ItemHasChildren(child) then
+        patternDeleteNodes(tree.ctrl:GetFirstChild(child), pattern, true)
+      end
+      child = tree.ctrl:GetNextSibling(child)
+    end
+  end
+end
+
+
 --
 local function updateFiletree(projName)
   local projStr = FileRead(projectPath .. projName)
@@ -98,15 +117,7 @@ local function updateFiletree(projName)
     for _, v in pairs(config.ignoreTable) do
       v = "^" .. v
       local child, text = tree.ctrl:GetFirstChild(tree.ctrl:GetRootItem()), nil
-      while child:IsOk() do
-        text = tree.ctrl:GetItemText(child)
-        if text:find(v) and not text:find("%.lua") then
-          child = tree.ctrl:GetNextSibling(child)
-          tree.ctrl:Delete(tree.ctrl:GetPrevSibling(child))
-        else
-          child = tree.ctrl:GetNextSibling(child)
-        end
-      end
+      patternDeleteNodes(child, v, config.recursive)
     end
     -- add our external Gideros project file
     for _, v in pairs(files) do
@@ -154,6 +165,7 @@ local package = {
   --
   onRegister = function(self)
     config.ignoreTable = self:GetConfig().ignore or {}
+    config.recursive = self:GetConfig().recursive or false
     tree.ctrl = ide:GetProjectTree()
   end,
 
