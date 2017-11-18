@@ -9,12 +9,12 @@
 --
 --       Gideros project file required at root level of project directory.
 --
---    2. Filters folders in project root from file tree that start with entries in
+--    2. Filters folders in project root from file tree that match patterns in
 --       ignore table set in preferences/config file user.lua
 --
 -- Example:
 --                giderosfiletree = {
---                     ignore = { "Export", ".tmp" },
+--                     ignore = { "^Export", "^%.tmp" },
 --                  recursive = true
 --                }
 --
@@ -27,6 +27,15 @@ local projectPath = nil
 local giderosProj = false
 local tree = {}
 local config = {}
+
+-- layout structure different on Mac so this is cross platform method of
+-- getting parent notebook
+local function getNoteBook()
+  local nbc = "wxAuiNotebook"
+  return tree.ctrl:GetClassInfo():GetClassName() == nbc and win:DynamicCast(nbc)
+        or tree.ctrl:GetParent():GetClassInfo():GetClassName() == nbc and
+        tree.ctrl:GetParent():DynamicCast(nbc) or nil
+end
 
 -- shorten path by 'levels' number of levels
 local function getPathLevelsUp(path, levels)
@@ -56,7 +65,7 @@ local function luaFilesFromGidProj(projStr, relativeOnly)
   local files = {}
   local i = 0
   local tokenStart = "source=\""
-  local tokenEnd = "\"/"
+  local tokenEnd = "\""
   while true do
     i = string.find(projStr, tokenStart, i)
 
@@ -83,7 +92,7 @@ local function luaFilesFromGidProj(projStr, relativeOnly)
   end
 end
 
-
+--
 local function patternDeleteNodes(child, pattern, recursive)
   local text
   while child:IsOk() do
@@ -100,22 +109,19 @@ local function patternDeleteNodes(child, pattern, recursive)
   end
 end
 
-
 --
 local function updateFiletree(projName)
   local projStr = FileRead(projectPath .. projName)
   if not projStr then return end
   local files = luaFilesFromGidProj(projStr, true)
-  --if not files then return end
   local root = tree.ctrl:GetRootItem()
   -- prevent UI updates in control to stop flickering
-  ide:GetProjectNotebook():Freeze()
+  getNoteBook():Freeze()
 
   -- freezing whole notebook, so protect call in case of error
   pcall( function ()
     -- delete nodes with directories starting with what's in ignore table
     for _, v in pairs(config.ignoreTable) do
-      v = "^" .. v
       local child, text = tree.ctrl:GetFirstChild(tree.ctrl:GetRootItem()), nil
       patternDeleteNodes(child, v, config.recursive)
     end
@@ -127,7 +133,7 @@ local function updateFiletree(projName)
     end
   end)
 
-  ide:GetProjectNotebook():Thaw()
+  getNoteBook():Thaw()
 end
 
 --
