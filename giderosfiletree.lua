@@ -197,11 +197,18 @@ local package = {
   --
   onProjectLoad = function(self, project)
     if giderosProj then
+      if ide:GetInterpreter() ~= "Gideros" then
+        ide:GetInterpreter("Gideros")
+      end
       ide:DoWhenIdle(function()
           updateFiletree(giderosProj)
         end
       )
     end
+  end,
+
+  onAppFocusSet = function(self, app)
+    if giderosProj then updateFiletree(giderosProj) end
   end,
 
   --
